@@ -26,12 +26,15 @@ pub mod commands {
 }
 
 pub mod responses {
+
     #[derive(Debug)]
-    pub struct SelectResponse {
+    pub struct SelectResponseOk {
         initialised: bool,
-        public_key: Result<secp256k1::PublicKey, secp256k1::Error>,
+        public_key: secp256k1::PublicKey,
         id: Option<Vec<u8>>,
     }
+
+    pub type SelectResponse = Result<SelectResponseOk, secp256k1::Error>;
 
     pub fn parse_select_response_apdu(response: crate::apdu::ResponseApdu) -> SelectResponse {
         let initialised = response.data[0] == 164;
@@ -51,10 +54,15 @@ pub mod responses {
 
         let public_key = secp256k1::PublicKey::from_slice(&public_key_bytes);
 
-        SelectResponse {
-            initialised,
-            public_key,
-            id,
+        match public_key {
+            Ok(public_key) => {
+                return Ok(SelectResponseOk {
+                    initialised,
+                    public_key,
+                    id,
+                })
+            }
+            Err(e) => return Err(e),
         }
     }
 }

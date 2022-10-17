@@ -76,6 +76,8 @@ fn main() {
 
     let send = create_send(card);
     let commands = phonon_commands::PhononCardCommands::new(&send);
-    let result = commands.select();
-    println!("Result: {:?}", result);
+    match commands.select() {
+        Ok(result) => println!("Result: {:?}", result),
+        Err(e) => eprintln!("Failed to transmit APDU command to card: {}", e),
+    };
 }
