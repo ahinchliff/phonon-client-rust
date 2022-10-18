@@ -5,15 +5,21 @@ mod phonon_commands;
 fn encode_command_apdu(command: apdu::CommandApdu) -> Vec<u8> {
     let data_size = command.data.len().try_into().unwrap();
     let mut result = vec![command.cla, command.ins, command.p1, command.p2, data_size];
-    result.extend_from_slice(command.data);
+    result.extend(command.data);
     result.push(0); // todo - is this le?
-    return result;
+    result
 }
 
 fn parse_response_apdu(response: Vec<u8>) -> apdu::ResponseApdu {
     let sw1 = response[response.len() - 2];
     let sw2 = response[response.len() - 1];
-    let data = response[0..=response.len() - 3].to_vec();
+
+    let data = if response.len() == 2 {
+        vec![]
+    } else {
+        response[0..=response.len() - 3].to_vec()
+    };
+
     apdu::ResponseApdu { sw1, sw2, data }
 }
 
@@ -78,6 +84,8 @@ fn main() {
     let commands = phonon_commands::PhononCardCommands::new(&send);
     match commands.select() {
         Ok(result) => println!("Result: {:?}", result),
-        Err(e) => eprintln!("Failed to transmit APDU command to card: {}", e),
+        Err(e) => {
+            eprintln!("Command error: {:?}", e)
+        }
     };
 }

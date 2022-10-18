@@ -11,9 +11,9 @@ impl PhononCardCommands<'_> {
         PhononCardCommands { send }
     }
 
-    pub fn select(&self) -> apdu::responses::SelectResponse {
-        let select_apdu = apdu::commands::new_select_command_apdu();
+    pub fn select(&self) -> apdu::responses::select::SelectResponse {
+        let select_apdu = apdu::commands::select();
         let result = (self.send)(select_apdu);
-        return apdu::responses::parse_select_response_apdu(result);
+        return apdu::responses::select::parse(result);
     }
 }
