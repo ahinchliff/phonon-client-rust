@@ -1,6 +1,7 @@
 use pcsc::*;
 mod apdu;
 mod phonon_card;
+mod usb_phonon_card;
 
 fn encode_command_apdu(command: apdu::CommandApdu) -> Vec<u8> {
     let data_size = command.data.len().try_into().unwrap();
@@ -81,7 +82,7 @@ fn main() {
     }
 
     let send = create_send(card);
-    let mut commands = phonon_card::Card::new(&send);
+    let mut commands = phonon_card::PhononCard::new(&send);
     match commands.select() {
         Ok(result) => println!("Result: {:?}", result),
         Err(e) => {

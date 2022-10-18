@@ -3,15 +3,15 @@ mod channel;
 
 pub type SendCommand = dyn Fn(apdu::CommandApdu) -> apdu::ResponseApdu;
 
-pub struct Card<'a> {
+pub struct PhononCard<'a> {
     channel: channel::Channel<'a>,
     pub is_initialised: bool,
 }
 
-impl Card<'_> {
-    pub fn new(send: &SendCommand) -> Card {
+impl PhononCard<'_> {
+    pub fn new(send: &SendCommand) -> PhononCard {
         let channel = channel::Channel::new(send);
-        Card {
+        PhononCard {
             channel,
             is_initialised: false,
         }
