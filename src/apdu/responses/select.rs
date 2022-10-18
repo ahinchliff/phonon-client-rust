@@ -1,8 +1,8 @@
 #[derive(Debug)]
 pub struct SelectSuccess {
-    initialised: bool,
-    pairing_public_key: secp256k1::PublicKey,
-    id: Option<Vec<u8>>,
+    pub id: Option<Vec<u8>>,
+    pub is_initialised: bool,
+    pub pairing_public_key: secp256k1::PublicKey,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum SelectError {
@@ -43,7 +43,7 @@ pub fn parse(response: crate::apdu::ResponseApdu) -> SelectResponse {
     })?;
 
     Ok(SelectSuccess {
-        initialised,
+        is_initialised: initialised,
         pairing_public_key: public_key,
         id,
     })
