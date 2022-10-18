@@ -41,7 +41,7 @@ fn create_send(card: pcsc::Card) -> Box<phonon_card::SendCommand> {
     })
 }
 
-fn connect_all() -> Vec<phonon_card::PhononCard<'static>> {
+pub fn connect_all() -> Vec<phonon_card::PhononCard<'static>> {
     let ctx = match pcsc::Context::establish(pcsc::Scope::User) {
         Ok(ctx) => ctx,
         Err(err) => {
