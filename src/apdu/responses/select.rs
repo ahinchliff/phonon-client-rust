@@ -37,7 +37,7 @@ pub fn parse(response: crate::apdu::ResponseApdu) -> SelectResponse {
     };
 
     let public_key = secp256k1::PublicKey::from_slice(&public_key_bytes).or_else(|e| {
-        return Err(super::ResponseError::KnownError(
+        return Err(super::ResponseError::KnownApduError(
             SelectError::InvalidCardPublicKey(e),
         ));
     })?;

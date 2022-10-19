@@ -57,10 +57,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "phonon-client-rust"
+name = "phonon_client_rust"
 version = "0.1.0"
 dependencies = [
  "pcsc",
+ "rand",
  "secp256k1",
 ]
 

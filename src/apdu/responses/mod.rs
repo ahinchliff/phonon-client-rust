@@ -1,3 +1,4 @@
+pub mod identify;
 pub mod select;
 
 const SUCCESS_SW1: u8 = 0x90;
@@ -11,8 +12,8 @@ struct KnownError<Error> {
 
 #[derive(Debug)]
 pub enum ResponseError<T> {
-    KnownError(T),
-    UnknownError(u8, u8),
+    KnownApduError(T),
+    UnknownApduError(u8, u8),
 }
 
 fn check_for_apdu_errors<T>(
@@ -28,9 +29,9 @@ where
 
     for possible_error in known_errors.iter() {
         if possible_error.sw1 == response.sw1 && possible_error.sw2 == response.sw2 {
-            return Err(ResponseError::KnownError(possible_error.error));
+            return Err(ResponseError::KnownApduError(possible_error.error));
         }
     }
 
-    Err(ResponseError::UnknownError(response.sw1, response.sw1))
+    Err(ResponseError::UnknownApduError(response.sw1, response.sw2))
 }

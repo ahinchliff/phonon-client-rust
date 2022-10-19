@@ -1,15 +1,15 @@
 use crate::apdu;
 mod channel;
 
-pub type SendCommand = dyn Fn(apdu::CommandApdu) -> apdu::ResponseApdu;
+pub type SendCommand<T> = dyn Fn(apdu::CommandApdu) -> Result<apdu::ResponseApdu, T>;
 
-pub struct PhononCard {
-    channel: channel::Channel,
+pub struct PhononCard<T> {
+    channel: channel::Channel<T>,
     pub is_initialised: bool,
 }
 
-impl PhononCard {
-    pub fn new(send: Box<SendCommand>) -> PhononCard {
+impl<T> PhononCard<T> {
+    pub fn new(send: Box<SendCommand<T>>) -> PhononCard<T> {
         let channel = channel::Channel::new(send);
         PhononCard {
             channel,
@@ -17,9 +17,9 @@ impl PhononCard {
         }
     }
 
-    pub fn select(&mut self) -> apdu::responses::select::SelectResponse {
-        let select_apdu = apdu::commands::select();
-        let raw_response = (self.channel.send)(select_apdu);
+    pub fn select(&mut self) -> Result<apdu::responses::select::SelectResponse, T> {
+        let apdu = apdu::commands::select();
+        let raw_response = (self.channel.send)(apdu)?;
         let response = apdu::responses::select::parse(raw_response);
         match &response {
             Ok(select_success) => {
@@ -29,6 +29,15 @@ impl PhononCard {
             }
             Err(_) => {}
         };
-        response
+        Ok(response)
+    }
+
+    pub fn identify(
+        &mut self,
+        nonce: [u8; 32],
+    ) -> Result<apdu::responses::identify::IdentifyResponse, T> {
+        let apdu = apdu::commands::identify(nonce);
+        let raw_response = (self.channel.send)(apdu)?;
+        Ok(apdu::responses::identify::parse(raw_response))
     }
 }

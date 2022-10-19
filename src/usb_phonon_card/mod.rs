@@ -2,6 +2,10 @@ use crate::apdu;
 use crate::phonon_card;
 use pcsc;
 
+type TransportError = pcsc::Error;
+
+pub type UsbPhononCard = phonon_card::PhononCard<TransportError>;
+
 fn encode_command_apdu(command: apdu::CommandApdu) -> Vec<u8> {
     let data_size = command.data.len().try_into().unwrap();
     let mut result = vec![command.cla, command.ins, command.p1, command.p2, data_size];
@@ -23,55 +27,27 @@ fn parse_response_apdu(response: Vec<u8>) -> apdu::ResponseApdu {
     apdu::ResponseApdu { sw1, sw2, data }
 }
 
-fn create_send(card: pcsc::Card) -> Box<phonon_card::SendCommand> {
+fn create_send(card: pcsc::Card) -> Box<phonon_card::SendCommand<TransportError>> {
     Box::new(move |command: apdu::CommandApdu| {
         let command = encode_command_apdu(command);
-
         let mut rapdu_buf = [0; pcsc::MAX_BUFFER_SIZE];
-
-        let rapdu = match card.transmit(&command, &mut rapdu_buf) {
-            Ok(rapdu) => rapdu,
-            Err(err) => {
-                eprintln!("Failed to transmit APDU command to card: {}", err);
-                std::process::exit(1);
-            }
-        };
-
-        parse_response_apdu(rapdu.to_vec())
+        let rapdu = card.transmit(&command, &mut rapdu_buf)?;
+        Ok(parse_response_apdu(rapdu.to_vec()))
     })
 }
 
-pub fn connect_all() -> Vec<phonon_card::PhononCard> {
-    let ctx = match pcsc::Context::establish(pcsc::Scope::User) {
-        Ok(ctx) => ctx,
-        Err(err) => {
-            eprintln!("Failed to establish context: {}", err);
-            std::process::exit(1);
-        }
-    };
+pub fn connect_all() -> Result<Vec<UsbPhononCard>, TransportError> {
+    let ctx = pcsc::Context::establish(pcsc::Scope::User)?;
 
     let mut readers_buf = [0; 2048];
-    let readers = match ctx.list_readers(&mut readers_buf) {
-        Ok(readers) => readers,
-        Err(err) => {
-            eprintln!("Failed to list readers: {}", err);
-            std::process::exit(1);
-        }
-    };
+    let readers = ctx.list_readers(&mut readers_buf)?;
 
-    readers
+    Ok(readers
         .into_iter()
         .map(
             |reader| match ctx.connect(reader, pcsc::ShareMode::Shared, pcsc::Protocols::ANY) {
                 Ok(card) => Some(card),
-                Err(pcsc::Error::NoSmartcard) => {
-                    println!("A smartcard is not present in the reader {:?}", reader);
-                    None
-                }
-                Err(err) => {
-                    eprintln!("Failed to connect to card in reader {:?}: {}", reader, err);
-                    None
-                }
+                Err(_) => None,
             },
         )
         .collect::<Vec<Option<pcsc::Card>>>()
@@ -83,5 +59,5 @@ pub fn connect_all() -> Vec<phonon_card::PhononCard> {
             }
             None => None,
         })
-        .collect::<Vec<phonon_card::PhononCard>>()
+        .collect::<Vec<UsbPhononCard>>())
 }
