@@ -9,6 +9,7 @@ pub struct Channel<T> {
 impl<T> Channel<T> {
     pub fn new(send: Box<super::SendCommand<T>>) -> Channel<T> {
         let secp = secp256k1::Secp256k1::new();
+
         let (pairing_private_key, pairing_public_key) =
             secp.generate_keypair(&mut secp256k1::rand::rngs::OsRng);
 

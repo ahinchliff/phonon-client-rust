@@ -24,7 +24,9 @@ fn parse_response_apdu(response: Vec<u8>) -> apdu::ResponseApdu {
         response[0..=response.len() - 3].to_vec()
     };
 
-    apdu::ResponseApdu { sw1, sw2, data }
+    let sw = apdu::SW { sw1, sw2 };
+
+    apdu::ResponseApdu { sw, data }
 }
 
 fn create_send(card: pcsc::Card) -> Box<phonon_card::SendCommand<TransportError>> {

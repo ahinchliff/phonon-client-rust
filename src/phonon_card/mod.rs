@@ -17,10 +17,10 @@ impl<T> PhononCard<T> {
         }
     }
 
-    pub fn select(&mut self) -> Result<apdu::responses::select::SelectResponse, T> {
-        let apdu = apdu::commands::select();
+    pub fn select(&mut self) -> Result<apdu::select::SelectResponse, T> {
+        let apdu = apdu::select::command();
         let raw_response = (self.channel.send)(apdu)?;
-        let response = apdu::responses::select::parse(raw_response);
+        let response = apdu::select::response(raw_response);
         match &response {
             Ok(select_success) => {
                 self.channel
@@ -32,12 +32,18 @@ impl<T> PhononCard<T> {
         Ok(response)
     }
 
-    pub fn identify(
-        &mut self,
-        nonce: [u8; 32],
-    ) -> Result<apdu::responses::identify::IdentifyResponse, T> {
-        let apdu = apdu::commands::identify(nonce);
+    pub fn identify(&mut self, nonce: [u8; 32]) -> Result<apdu::identify::IdentifyResponse, T> {
+        let apdu = apdu::identify::command(nonce);
         let raw_response = (self.channel.send)(apdu)?;
-        Ok(apdu::responses::identify::parse(raw_response))
+        Ok(apdu::identify::response(raw_response))
+    }
+
+    pub fn install_certificate(
+        &mut self,
+        certificate: Vec<u8>,
+    ) -> Result<apdu::install_certificate::InstallCertificateResponse, T> {
+        let apdu = apdu::install_certificate::command(certificate);
+        let raw_response = (self.channel.send)(apdu)?;
+        Ok(apdu::install_certificate::response(raw_response))
     }
 }
