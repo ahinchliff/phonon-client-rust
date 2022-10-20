@@ -1,9 +1,10 @@
 use phonon_client_rust::usb_phonon_card;
-use rand::Rng;
 
+use rand::Rng;
 use secp256k1::Message;
 use secp256k1::Secp256k1;
 use secp256k1::SecretKey;
+use sha2::{Digest, Sha256};
 use std::process::Command;
 
 pub fn install_applet() {
@@ -20,28 +21,41 @@ pub fn delete_applet() {
         .expect("failed to execute process");
 }
 
-pub fn create_dev_certificate(card: &mut usb_phonon_card::UsbPhononCard) -> Vec<u8> {
-    let mut perms: Vec<u8> = vec![0x30, 0x00, 0x02, 0x02, 0x00, 0x00, 0x80, 0x41];
+pub fn create_and_install_demo_certificate(card: &mut usb_phonon_card::UsbPhononCard) {
+    let nonce = rand::thread_rng().gen::<[u8; 32]>();
+    let identity = card.identify(nonce).unwrap().unwrap();
+    let certificate = create_demo_card_certificate(identity.public_key);
+    card.install_certificate(certificate).unwrap().unwrap();
+}
 
+fn create_demo_card_certificate(public_key: secp256k1::PublicKey) -> Vec<u8> {
     let demo_ca_private_key_bytes: [u8; 32] = [
         0x03, 0x8D, 0x01, 0x08, 0x90, 0x00, 0x00, 0x00, 0x10, 0xAA, 0x82, 0x07, 0x09, 0x80, 0x00,
         0x00, 0x01, 0xBB, 0x03, 0x06, 0x90, 0x08, 0x35, 0xF9, 0x10, 0xCC, 0x04, 0x85, 0x09, 0x00,
         0x00, 0x91,
     ];
+    create_card_certificate(public_key, demo_ca_private_key_bytes)
+}
 
-    let demo_ca_private_key = SecretKey::from_slice(&demo_ca_private_key_bytes).unwrap();
+fn create_card_certificate(public_key: secp256k1::PublicKey, ca_private_key: [u8; 32]) -> Vec<u8> {
+    let mut perms: Vec<u8> = vec![0x30, 0x00, 0x02, 0x02, 0x00, 0x00, 0x80, 0x41];
 
-    let nonce = rand::thread_rng().gen::<[u8; 32]>();
-    let result = card.identify(nonce).unwrap().unwrap();
-    let mut card_public_key_bytes = result.public_key.serialize_uncompressed().to_vec();
+    let demo_ca_private_key = SecretKey::from_slice(&ca_private_key).unwrap();
+
+    let mut card_public_key_bytes = public_key.serialize_uncompressed().to_vec();
 
     let mut certificate: Vec<u8> = vec![];
 
     certificate.append(&mut perms);
     certificate.append(&mut card_public_key_bytes);
 
+    let mut hasher = Sha256::new();
     let pre_image = certificate[2..].to_vec();
-    let message = Message::from_slice(&pre_image).unwrap();
+
+    hasher.update(pre_image);
+
+    let hased_pre_image = hasher.finalize();
+    let message = Message::from_slice(&hased_pre_image).unwrap();
 
     let secp = Secp256k1::new();
 

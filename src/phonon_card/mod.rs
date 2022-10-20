@@ -32,7 +32,7 @@ impl<T> PhononCard<T> {
         Ok(response)
     }
 
-    pub fn identify(&mut self, nonce: [u8; 32]) -> Result<apdu::identify::IdentifyResponse, T> {
+    pub fn identify(&self, nonce: [u8; 32]) -> Result<apdu::identify::IdentifyResponse, T> {
         let apdu = apdu::identify::command(nonce);
         let raw_response = (self.channel.send)(apdu)?;
         Ok(apdu::identify::response(raw_response))

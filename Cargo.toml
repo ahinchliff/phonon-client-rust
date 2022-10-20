@@ -9,3 +9,4 @@ edition = "2021"
 pcsc = "2"
 secp256k1 = { version = "0", features = ["rand-std"] }
 rand = "0"
+sha2="0"

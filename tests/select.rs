@@ -19,7 +19,7 @@ fn test_select_applet_not_installed() {
 }
 
 #[test]
-fn test_select_happy_path_not_initialised() {
+fn test_not_initialised_and_no_certificate() {
     test_utils::install_applet();
     let mut card = test_utils::get_first_connected_card();
     let response = card.select().unwrap().unwrap();
@@ -27,10 +27,18 @@ fn test_select_happy_path_not_initialised() {
 }
 
 #[test]
-fn test_select_happy_path_initialised() {
+fn test_not_initialised_and_with_certificate() {
     test_utils::install_applet();
     let mut card = test_utils::get_first_connected_card();
+    card.select().unwrap().unwrap();
+    test_utils::create_and_install_demo_certificate(&mut card);
+
     let response = card.select().unwrap().unwrap();
-    assert_eq!(response.is_initialised, true);
-    assert!(response.id.is_some());
+
+    assert_eq!(response.is_initialised, false);
+}
+
+#[test]
+fn test_select_initialised() {
+    // todo
 }
