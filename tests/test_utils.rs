@@ -28,7 +28,7 @@ pub fn create_and_install_demo_certificate(card: &mut usb_phonon_card::UsbPhonon
     card.install_certificate(certificate).unwrap().unwrap();
 }
 
-fn create_demo_card_certificate(public_key: secp256k1::PublicKey) -> Vec<u8> {
+pub fn create_demo_card_certificate(public_key: secp256k1::PublicKey) -> Vec<u8> {
     let demo_ca_private_key_bytes: [u8; 32] = [
         0x03, 0x8D, 0x01, 0x08, 0x90, 0x00, 0x00, 0x00, 0x10, 0xAA, 0x82, 0x07, 0x09, 0x80, 0x00,
         0x00, 0x01, 0xBB, 0x03, 0x06, 0x90, 0x08, 0x35, 0xF9, 0x10, 0xCC, 0x04, 0x85, 0x09, 0x00,
@@ -37,10 +37,13 @@ fn create_demo_card_certificate(public_key: secp256k1::PublicKey) -> Vec<u8> {
     create_card_certificate(public_key, demo_ca_private_key_bytes)
 }
 
-fn create_card_certificate(public_key: secp256k1::PublicKey, ca_private_key: [u8; 32]) -> Vec<u8> {
+fn create_card_certificate(
+    public_key: secp256k1::PublicKey,
+    ca_private_key_bytes: [u8; 32],
+) -> Vec<u8> {
     let mut perms: Vec<u8> = vec![0x30, 0x00, 0x02, 0x02, 0x00, 0x00, 0x80, 0x41];
 
-    let demo_ca_private_key = SecretKey::from_slice(&ca_private_key).unwrap();
+    let ca_private_key = SecretKey::from_slice(&ca_private_key_bytes).unwrap();
 
     let mut card_public_key_bytes = public_key.serialize_uncompressed().to_vec();
 
@@ -49,19 +52,20 @@ fn create_card_certificate(public_key: secp256k1::PublicKey, ca_private_key: [u8
     certificate.append(&mut perms);
     certificate.append(&mut card_public_key_bytes);
 
-    let mut hasher = Sha256::new();
     let pre_image = certificate[2..].to_vec();
 
+    let mut hasher = Sha256::new();
     hasher.update(pre_image);
+    let hashed_pre_image = hasher.finalize();
 
-    let hased_pre_image = hasher.finalize();
-    let message = Message::from_slice(&hased_pre_image).unwrap();
+    // signature is not correct
 
     let secp = Secp256k1::new();
+    let message = Message::from_slice(&hashed_pre_image).unwrap();
+    let signature = secp.sign_ecdsa(&message, &ca_private_key);
+    let mut serialised_signature = signature.serialize_der().to_vec();
 
-    let signature = secp.sign_ecdsa(&message, &demo_ca_private_key);
-
-    certificate.append(&mut signature.serialize_compact().to_vec());
+    certificate.append(&mut serialised_signature);
 
     certificate[1] = certificate.len().try_into().unwrap();
 
